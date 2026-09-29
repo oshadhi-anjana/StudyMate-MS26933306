@@ -1,0 +1,26 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId}/records/{recordId} {
+      function owner() { return request.auth != null && request.auth.uid == userId; }
+      function validRecord() {
+        let d = request.resource.data;
+        return d.keys().hasAll(['id', 'kind', 'title', 'updatedAt', 'revision', 'serverUpdatedAt'])
+          && d.keys().hasOnly(['id', 'kind', 'title', 'updatedAt', 'revision', 'serverUpdatedAt', 'deleted', 'subjectId', 'color', 'body', 'dueAt', 'priority', 'completed', 'estimatedMinutes', 'day', 'startTime', 'endTime', 'location', 'targetMinutes', 'minutes', 'date', 'subtasks', 'photoURL', 'photoPath', 'reminderMinutes', 'dailyMinutes', 'availableStart', 'availableEnd', 'focusMinutes', 'breakMinutes', 'remindersEnabled'])
+          && d.id == recordId
+          && d.kind in ['subject', 'class', 'task', 'exam', 'goal', 'note', 'session', 'profile']
+          && d.title is string && d.title.size() > 0 && d.title.size() <= 120
+          && d.revision is string && d.revision.size() <= 80
+          && d.updatedAt is number
+          && d.serverUpdatedAt == request.time
+          && (!('body' in d) || (d.body is string && d.body.size() <= 10000))
+          && (!('subtasks' in d) || (d.subtasks is list && d.subtasks.size() <= 30))
+          && (!('minutes' in d) || (d.minutes is number && d.minutes >= 0 && d.minutes <= 180))
+          && (!('photoPath' in d) || d.photoPath == '' || d.photoPath.matches('users/' + userId + '/notes/' + recordId + '-.*[.]jpg'));
+      }
+      allow read: if owner();
+      allow create, update: if owner() && validRecord();
+      allow delete: if false;
+    }
+  }
+}
