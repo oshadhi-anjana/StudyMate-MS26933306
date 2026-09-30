@@ -47,7 +47,7 @@
     "web": "expo start --web",
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
-    "test": "node --test scripts/test-domain.cjs scripts/test-notifications.cjs",
+    "test": "node --test scripts/test-domain.cjs scripts/test-notifications.cjs scripts/test-photos.cjs",
     "export:web": "expo export --platform web",
     "preview": "node scripts/serve-preview.cjs"
   },

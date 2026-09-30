@@ -17,6 +17,8 @@ Two additional notification regression tests inspect the installed SDK's transit
 
 The later sign-out repair adds three passing tests (29 total): notification cleanup failure cannot prevent session termination, successful cancellation precedes sign-out, and genuine auth errors still propagate. Recheck sign-out on the reporting phone after restarting Metro with `--clear`.
 
+The Base64/Firestore change passes all 38 tests, including eight photo tests for size/format validation, compression, native Base64 preparation, legacy pending-photo migration, reference reuse, account-isolated offline caching and atomic-write retry. TypeScript checking also passes. Cloud rules and physical-device uploads still require integration testing.
+
 TypeScript and the 24 domain tests passed during implementation. Web and Android exports passed. Platform export produces a JavaScript/assets bundle; it is not an installed APK and does not validate native camera or notification delivery.
 
 Browser checks completed in the isolated demo: task creation; saved task retained after page reload and reopening the demo; overlapping class rejected; timer continues across navigation and restores after page reload; saving a session updates history and switches to the break timer. Phone-width (390 × 844) and desktop-width (1365 × 900) dashboard layouts were visually inspected.
@@ -27,7 +29,7 @@ Use your own test account after enabling Firebase services and deploying rules. 
 
 - Register, sign out, sign in, reset the password through your inbox, and reopen the app with the session restored.
 - Sign in as a second student and confirm the first student's records do not appear.
-- Use Firebase's rules simulator/emulator to verify unauthenticated requests and cross-UID reads/writes are denied for both Firestore and Storage.
+- Use Firebase's rules simulator/emulator to verify unauthenticated requests and cross-UID reads/writes are denied for both Firestore records and image documents.
 - Create each record type, edit it, reload the app, and confirm saved values persist.
 - Try empty titles, invalid times, class overlaps, invalid numeric goals and reversed goal dates.
 - Complete and reopen a task; toggle checklist items and verify exam revision progress.
@@ -45,3 +47,8 @@ Use your own test account after enabling Firebase services and deploying rules. 
 `Explore a local demo` exercises UI and local persistence without registering any live Firebase account. Changes remain under a separate local-preview cache. Refreshing returns to the sign-in page; reopening the demo restores saved demo edits and the timer. Native reminders are intentionally unavailable on web.
 
 Use this for screenshots and interface review, but clearly label screenshots containing sample data. A local-demo test cannot establish that cloud rules, authentication, camera permissions or notification delivery work.
+
+## Base64 photo integration checks
+
+Publish the new Firestore rules and base64 index exemption first. On a real account: attach a camera/library photo, save offline, reconnect and sync. Verify the image document and record photoId both appear; check the same note on another device. Open its photo online, then offline. Replace/remove the attachment and confirm other devices update after sync. Deny a batch write and verify the local photo remains pending for retry. Old unreferenced images are retained; removal clears the current reference.
+

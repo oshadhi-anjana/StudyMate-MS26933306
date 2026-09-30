@@ -41,7 +41,7 @@ StudyRepository -----> AsyncStorage (per-user snapshot + outbox)
            |
            +---------> Firebase Auth
            +---------> Firestore users/{uid}/records/{id}
-           +---------> Storage users/{uid}/notes/{id}-{revision}.jpg
+           +---------> Firestore users/{uid}/images/{id}-{revision} (Base64 JPEG)
 
 Pure domain functions: validation, clash detection, recommendations,
 study statistics, revision acknowledgement and remote merge.
@@ -53,7 +53,7 @@ An edit flows from a controlled form to domain validation, then to a serial loca
 
 ## Backend and access rules
 
-Every record belongs under its authenticated Firebase UID. The supplied Firestore and Storage rules deny unauthenticated access and access to another student's path. Firestore rules validate allowed keys, identifiers, title size, revision and server timestamps. Photos are JPEG images under 2 MB. Client Firebase identifiers are public configuration, not administrator credentials. The app never embeds service-account keys.
+Every record belongs under its authenticated Firebase UID. The supplied Firestore record and image rules deny unauthenticated access and access to another student's path. Firestore rules validate allowed keys, identifiers, title size, revision and server timestamps. Photos are JPEG images up to 200 KB before Base64 encoding, stored in separate authenticated Firestore documents. Client Firebase identifiers are public configuration, not administrator credentials. The app never embeds service-account keys.
 
 Cloud setup and rules deployment remain required in the project owner's console. A successful local demo is not evidence that Firebase authentication, rule enforcement or photo uploads have been verified against the production project.
 
@@ -73,7 +73,7 @@ Photos captured on this device are copied from temporary camera storage into the
 
 ## Constrained mobile design
 
-- Compress photos to JPEG at a maximum width of 1280 pixels; reject files over 2 MB.
+- Compress photos to JPEG at a maximum width of 1280 pixels, retrying smaller sizes if needed; reject images over 200 KB. Commit the image and planner reference atomically, with offline retry. Cache up to five downloaded images per account.
 - Keep one attachment per task/note and cap checklists at 30 steps.
 - Render planner records in pages of 20, with an explicit load-more action.
 - Use incremental cloud reads instead of repeatedly downloading the full planner.
@@ -153,4 +153,4 @@ Capture the actual running app: login, dashboard, timetable, overlapping-class e
 - Expo image picker: https://docs.expo.dev/versions/v57.0.0/sdk/imagepicker/
 - Firebase Authentication: https://firebase.google.com/docs/auth/web/start
 - Firebase offline behavior: https://firebase.google.com/docs/firestore/manage-data/enable-offline
-- Firebase Storage uploads: https://firebase.google.com/docs/storage/web/upload-files
+- Firestore quotas: https://firebase.google.com/docs/firestore/quotas

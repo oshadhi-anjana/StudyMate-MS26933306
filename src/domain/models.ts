@@ -28,6 +28,8 @@ export interface StudyRecord {
   photoURL?: string;
   photoPath?: string;
   photoPending?: boolean;
+  /** Reference to a separate, immutable Firestore image document. */
+  photoId?: string;
   reminderMinutes?: number;
   dailyMinutes?: number;
   availableStart?: string;

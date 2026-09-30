@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Image, Platform, Text, View } from 'react-native';
+import { Platform, Text, View } from 'react-native';
 import { randomUUID } from 'expo-crypto';
 import { days, Kind, RecordInput, StudyRecord, subjectColors } from '../domain/models';
 import { Button, Chips, Field, Message, Sheet, Check } from '../components/study/Controls';
+import { PhotoAttachment } from '../components/study/PhotoAttachment';
 import { DateField } from '../components/study/DateField';
 import { ui } from '../components/study/theme';
 import { useStudy } from '../state/StudyProvider';
@@ -19,7 +20,7 @@ export function RecordEditor({ kind, record, onClose }: { kind: Kind; record?: S
   const subjects = records.filter(item => item.kind === 'subject');
   const photo = async (camera: boolean) => {
     setPhotoBusy(true); setError('');
-    try { const uri = await capturePhoto(camera, user!.uid); if (uri) patch({ photoUri: uri, photoPending: true }); }
+    try { const uri = await capturePhoto(camera, user!.uid); if (uri) patch({ photoUri: uri, photoId: '', photoURL: '', photoPath: '', photoPending: true }); }
     catch (e) { setError(friendlyError(e)); } finally { setPhotoBusy(false); }
   };
   const submit = async () => { setBusy(true); setError(''); try { await save(draft); onClose(); } catch (e) { setError(friendlyError(e)); setBusy(false); } };
@@ -37,7 +38,7 @@ export function RecordEditor({ kind, record, onClose }: { kind: Kind; record?: S
       <Field label={kind === 'exam' ? 'Add a topic to revise' : 'Add a subtask'} value={subtask} onChangeText={setSubtask} maxLength={160} /><Button label="+ Add to checklist" variant="secondary" small disabled={!subtask.trim() || (draft.subtasks?.length ?? 0) >= 30} onPress={() => { patch({ subtasks: [...(draft.subtasks ?? []), { id: randomUUID(), title: subtask.trim(), done: false }] }); setSubtask(''); }} />
     </View>}
     {['task', 'exam', 'class'].includes(kind) && <View style={{ gap: 10 }}><Text style={ui.muted}>Reminder before {kind === 'task' ? 'deadline' : kind === 'exam' ? 'exam' : 'class'}</Text><Chips value={String(draft.reminderMinutes ?? -1)} onChange={value => patch({ reminderMinutes: Number(value) })} options={[{ value: '-1', label: 'None' }, { value: '10', label: '10 min' }, { value: '30', label: '30 min' }, { value: '60', label: '1 hour' }]} />{!profile?.remindersEnabled && <Text style={ui.muted}>Enable device reminders in Profile to receive notifications.</Text>}</View>}
-    {['note', 'task'].includes(kind) && <View style={{ gap: 12 }}><Text style={ui.heading}>A picture worth keeping</Text><Text style={ui.muted}>Attach one compressed photo of your notes or assignment instructions.</Text>{(draft.photoUri || draft.photoURL) && <><Image source={{ uri: draft.photoUri || draft.photoURL }} style={{ width: '100%', height: 230, borderRadius: 12 }} resizeMode="contain" accessibilityLabel="Note attachment" /><Button label="Remove photo" variant="danger" small onPress={() => patch({ photoUri: '', photoURL: '', photoPath: '', photoPending: false })} /></>}<View style={ui.row}>{Platform.OS !== 'web' && <Button label="Take a photo" variant="secondary" onPress={() => void photo(true)} busy={photoBusy} />}<Button label="Choose a photo" variant="secondary" onPress={() => void photo(false)} disabled={photoBusy} /></View></View>}
+    {['note', 'task'].includes(kind) && <View style={{ gap: 12 }}><Text style={ui.heading}>A picture worth keeping</Text><Text style={ui.muted}>Attach one photo, compressed to a JPEG of up to 200 KB.</Text>{(draft.photoUri || draft.photoURL || draft.photoId) && <><PhotoAttachment photoUri={draft.photoUri} photoURL={draft.photoURL} photoId={draft.photoId} autoLoad /><Button label="Remove photo" variant="danger" small onPress={() => patch({ photoId: '', photoUri: '', photoURL: '', photoPath: '', photoPending: false })} /></>}<View style={ui.row}>{Platform.OS !== 'web' && <Button label="Take a photo" variant="secondary" onPress={() => void photo(true)} busy={photoBusy} />}<Button label="Choose a photo" variant="secondary" onPress={() => void photo(false)} disabled={photoBusy} /></View></View>}
     <Message text={error} error /><Button label={busy ? 'Saving…' : 'Save to my planner'} onPress={() => void submit()} busy={busy} disabled={photoBusy} />
     <Text style={[ui.muted, { textAlign: 'center', fontSize: 11 }]}>{demo ? 'Local demo: saved on this device only.' : 'Saved on this device first. Synced to your account when connected.'}</Text>
   </Sheet>;

@@ -8,9 +8,7 @@ export function friendlyError(error: unknown): string {
     'auth/network-request-failed': 'You need a connection to sign in. Try again when online.',
     'auth/too-many-requests': 'Too many attempts. Please wait a little and try again.',
     'auth/operation-not-allowed': 'Email/password sign-in must be enabled in the Firebase console.',
-    'permission-denied': 'Cloud access was denied. Check the Firestore security rules in the setup guide.',
-    'storage/unauthorized': 'Photo upload was denied. Check Firebase Storage rules.',
-    'storage/unknown': 'Photo upload failed. Check that Firebase Storage is enabled.',
+    'permission-denied': 'Cloud access was denied. Publish the updated Firestore rules for records and images from the setup guide.',
     'unavailable': 'Cloud is temporarily unavailable. Your local changes are kept for retry.',
   };
   return known[code] ?? (error instanceof Error ? error.message : 'Something went wrong. Please try again.');

@@ -1,5 +1,6 @@
+import { PhotoAttachment } from './PhotoAttachment';
 import React from 'react';
-import { Image, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { StudyRecord, days } from '../../domain/models';
 import { clockLabel, dateLabel, daysUntil, studyMinutes } from '../../domain/planner';
 import { Badge, Button, Card, Check, ProgressBar } from './Controls';
@@ -20,7 +21,7 @@ export function RecordCard({ record, records, onEdit, onDelete, onToggle }: { re
     {record.kind === 'goal' && <><View style={ui.between}><Text style={ui.body}>{Math.round(minutes)} / {record.targetMinutes} min</Text><Badge label={minutes >= record.targetMinutes! ? 'Achieved' : record.dueAt! < Date.now() ? 'Ended' : 'In progress'} tone={minutes >= record.targetMinutes! ? 'green' : 'gold'} /></View><ProgressBar value={minutes / record.targetMinutes!} color={color} label="Study goal progress" /><Text style={ui.muted}>{dateLabel(record.date)} – {dateLabel(record.dueAt)}</Text></>}
     {!!record.body && <Text style={ui.muted} numberOfLines={record.kind === 'note' ? 5 : 2}>{record.body}</Text>}
     {record.kind === 'task' && steps.length > 0 && <><Text style={ui.muted}>{done}/{steps.length} steps completed</Text><ProgressBar value={done / steps.length} label="Assignment steps" /></>}
-    {record.kind === 'note' && !!(record.photoUri || record.photoURL) && <Image source={{ uri: record.photoUri || record.photoURL }} style={{ height: 160, width: '100%', borderRadius: 12 }} resizeMode="cover" accessibilityLabel="Attached study notes" />}
+    {record.kind === 'note' && !!(record.photoUri || record.photoURL || record.photoId) && <PhotoAttachment photoUri={record.photoUri} photoURL={record.photoURL} photoId={record.photoId} />}
     <View style={[ui.row, { justifyContent: 'flex-end', gap: 4 }]}><Button label={record.kind === 'note' ? 'Open note' : 'Edit'} variant="ghost" small onPress={onEdit} /><Button label="Delete" variant="ghost" small onPress={onDelete} /></View>
   </Card>;
 }

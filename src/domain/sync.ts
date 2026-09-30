@@ -14,8 +14,11 @@ export function mergeRemote(state: LocalState, remote: StudyRecord[]): LocalStat
   for (const record of remote) {
     if (state.pending[record.id]) continue;
     const cached = records[record.id];
+    const samePhoto = record.photoId
+      ? record.photoId === cached?.photoId
+      : !cached?.photoId && !!record.photoPath && cached?.photoPath === record.photoPath;
     records[record.id] = { ...record,
-      ...(cached?.photoUri && cached.photoPath === record.photoPath ? { photoUri: cached.photoUri } : {}) };
+      ...(cached?.photoUri && samePhoto ? { photoUri: cached.photoUri } : {}) };
   }
   return { ...state, records };
 }

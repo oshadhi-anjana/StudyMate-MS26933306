@@ -55,3 +55,10 @@ test('authentication sign-out failure is not swallowed', async () => {
   const failure = new Error('Auth persistence failed');
   await assert.rejects(completeSignOut(async () => {}, async () => { throw failure; }), error => error === failure);
 });
+
+test('Firestore photo references preserve matching local copies but clear replaced or removed attachments', () => {
+ const state = { ...emptyState(), records: { a: record({photoId:'a-r1',photoUri:'file://photo'}) } };
+ assert.equal(mergeRemote(state,[record({photoId:'a-r1'})]).records.a.photoUri,'file://photo');
+ assert.equal(mergeRemote(state,[record({photoId:'a-r2'})]).records.a.photoUri,undefined);
+ assert.equal(mergeRemote(state,[record({photoId:''})]).records.a.photoUri,undefined);
+});

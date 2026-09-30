@@ -3,9 +3,22 @@ import * as ImagePicker from 'expo-image-picker';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { File, Directory, Paths } from 'expo-file-system';
 import { randomUUID } from 'expo-crypto';
-import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
-import { storage } from './firebase';
 import { StudyRecord } from '../domain/models';
+import { imageBytes, JPEG_DATA_PREFIX, MAX_IMAGE_BYTES, StudyImage, validateImage } from '../domain/images';
+
+/** Bounded attempts: preserve legibility where possible, then reject oversize images. */
+export async function compressPhoto(uri: string, originalWidth = 1280) {
+  for (const [width, quality] of [[1280, 0.75], [1024, 0.65], [800, 0.55], [640, 0.45]]) {
+    const result = await manipulateAsync(uri, [{ resize: { width: Math.min(originalWidth, width) } }], {
+      compress: quality, format: SaveFormat.JPEG, base64: true,
+    });
+    if (result.base64 && imageBytes(result.base64) <= MAX_IMAGE_BYTES) {
+      validateImage(result.base64);
+      return { uri: result.uri, base64: result.base64 };
+    }
+  }
+  throw new Error('This photo is too detailed to fit within 200 KB. Crop a smaller area or take a closer photo.');
+}
 
 export async function capturePhoto(camera: boolean, uid: string) {
   if (camera) {
@@ -16,27 +29,34 @@ export async function capturePhoto(camera: boolean, uid: string) {
   const result = camera ? await ImagePicker.launchCameraAsync(options) : await ImagePicker.launchImageLibraryAsync(options);
   if (result.canceled) return null;
   const asset = result.assets[0];
-  const compressed = await manipulateAsync(asset.uri, [{ resize: { width: Math.min(asset.width, 1280) } }], { compress: 0.65, format: SaveFormat.JPEG, base64: Platform.OS === 'web' });
+  const compressed = await compressPhoto(asset.uri, asset.width);
   if (Platform.OS === 'web') {
-    if ((compressed.base64?.length ?? 0) > 2700000) throw new Error('Please choose a smaller photo (under 2 MB).');
-    return `data:image/jpeg;base64,${compressed.base64}`;
+    return JPEG_DATA_PREFIX + compressed.base64;
   }
   const folder = new Directory(Paths.document, 'studymate', uid);
   folder.create({ intermediates: true, idempotent: true });
   const original = new File(compressed.uri);
-  if (original.size > 2 * 1024 * 1024) throw new Error('Please choose a smaller photo (under 2 MB).');
   const saved = new File(folder, `${randomUUID()}.jpg`);
   original.copy(saved);
   return saved.uri;
 }
 
-export async function uploadRecordPhoto(uid: string, record: StudyRecord): Promise<StudyRecord> {
-  if (!record.photoPending || !record.photoUri || record.deleted) return record;
-  const path = `users/${uid}/notes/${record.id}-${record.revision}.jpg`;
-  const bytes = Platform.OS === 'web'
-    ? new Uint8Array(await (await fetch(record.photoUri)).arrayBuffer())
-    : await new File(record.photoUri).bytes();
-  const target = ref(storage, path);
-  await uploadBytes(target, bytes, { contentType: 'image/jpeg' });
-  return { ...record, photoURL: await getDownloadURL(target), photoPath: path, photoPending: false };
+export async function prepareRecordPhoto(record: StudyRecord): Promise<{ record: StudyRecord; image?: StudyImage }> {
+  if (record.deleted) return { record: { ...record, photoId: '', photoUri: '', photoURL: '', photoPath: '', photoPending: false } };
+  if (!record.photoPending) return { record };
+  if (!record.photoUri) throw new Error('The pending photo is missing. Please attach it again.');
+  let base64: string;
+  if (record.photoUri.startsWith(JPEG_DATA_PREFIX)) base64 = record.photoUri.slice(JPEG_DATA_PREFIX.length);
+  else if (Platform.OS !== 'web') base64 = await new File(record.photoUri).base64();
+  else throw new Error('Please choose this photo again to convert it to JPEG.');
+  // Migrate previously queued photos that used the old 2 MB Storage limit.
+  if (imageBytes(base64) > MAX_IMAGE_BYTES) {
+    base64 = (await compressPhoto(record.photoUri)).base64;
+  }
+  const bytes = validateImage(base64);
+  const photoId = `${record.id}-${record.revision}`;
+  return {
+    record: { ...record, photoId, photoURL: '', photoPath: '', photoPending: false },
+    image: { recordId: record.id, revision: record.revision, mimeType: 'image/jpeg', base64, bytes },
+  };
 }

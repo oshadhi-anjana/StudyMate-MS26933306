@@ -27,7 +27,7 @@ The supplied client configuration is in `src/services/firebase.ts` and points to
 2. In **Authentication → Sign-in method**, enable **Email/Password**.
 3. Create a **Cloud Firestore** database (default database, native mode). Choose a suitable region.
 4. In **Firestore → Rules**, paste and publish `firestore.rules`.
-5. Enable **Storage** and use the configured bucket `studymate-b077d.firebasestorage.app`. Follow any plan/activation requirements shown by Firebase. In **Storage → Rules**, paste and publish `storage.rules`.
+5. In **Firestore → Indexes → Single field**, add an exemption for collection group `images`, field `base64`, with all indexing disabled. Photos use Firestore; Firebase Storage activation is unnecessary.
 6. For browser sign-in/reset flows, check **Authentication → Settings → Authorized domains** and add your development/hosting domain when required (for example `localhost`).
 7. Start the app, create your own student account and create a subject. Confirm its document appears under `users/<your-uid>/records` in Firestore.
 
@@ -35,7 +35,7 @@ Alternatively, if you have Firebase CLI access to this project:
 
 ```sh
 npx firebase-tools login
-npx firebase-tools deploy --only firestore:rules,storage --project studymate-b077d
+npx firebase-tools deploy --only firestore --project studymate-b077d
 ```
 
 The repository includes rules and configuration; they have **not** been deployed to your Firebase project by this implementation. Do not use open/test-mode rules for the completed app.
@@ -87,7 +87,7 @@ npm run export:web
 npx expo export --platform android --output-dir dist-android
 ```
 
-`npm test` runs 24 domain/synchronization tests. To serve an exported web build without opening a browser automatically:
+`npm test` runs domain, synchronization, notification and photo regression tests. To serve an exported web build without opening a browser automatically:
 
 ```sh
 npm run preview
@@ -107,7 +107,7 @@ src/
   state/               Auth/data/lifecycle provider
 assets/images/studymate-logo.png
 firestore.rules
-storage.rules
+firestore.indexes.json
 firebase.json
 scripts/test-domain.cjs
 scripts/serve-preview.cjs
@@ -131,8 +131,8 @@ The student selected EdTech and requested the additional digit reduction `32 →
 - Local changes persist before cloud upload. The status banner distinguishes offline/pending work from synchronized work.
 - Sync occurs when the app is active/reconnected; closed-app background sync is not promised.
 - Concurrent edits to the same record on different devices use last arrival at the server. Deletions synchronize as tombstones.
-- Photos captured on the current device remain available locally. Remote-device photos need a connection unless already cached by the image view.
-- Photo files are limited to 2 MB each. Old unreferenced uploads/camera copies are not automatically garbage-collected in this assignment version.
-- Do not publish private handwritten notes via public links. Firebase Storage download URLs act as shareable bearer links.
+- Photos captured on the current device remain available locally. Remote-device photos are downloaded when opened; the five most recently downloaded images per account are cached for offline viewing.
+- Photos are compressed JPEGs limited to 200 KB before Base64 encoding. Image documents live in `users/<uid>/images`; planner documents hold only an image reference. Image and planner writes commit atomically and failed uploads remain queued. Old unreferenced images/camera copies are not automatically garbage-collected.
+- New photos use authenticated Firestore reads, without public download URLs. Firestore free quotas still apply; Base64 adds about 33% to image size. Previously queued oversized photos are recompressed during synchronization.
 - The offline snapshot is application-private storage, not an encrypted vault. Sign-out retains it for that same account; pending work uploads after signing in again.
 - Actual Firebase credentials/rule deployment, native permission behavior and notification delivery must be checked with your own account and phone before the viva.

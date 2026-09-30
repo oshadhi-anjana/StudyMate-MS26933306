@@ -1,11 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { randomUUID } from 'expo-crypto';
-import { collection, doc, getDocsFromServer, limit, orderBy, query, serverTimestamp, setDoc, startAfter, where, Timestamp, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
+import { collection, doc, getDocsFromServer, limit, orderBy, query, serverTimestamp, writeBatch, startAfter, where, Timestamp, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 import { emptyState, LocalState, RecordInput, StudyRecord } from '../domain/models';
 import { acknowledge, mergeRemote } from '../domain/sync';
 import { validateRecord } from '../domain/planner';
 import { database } from './firebase';
-import { uploadRecordPhoto } from './photos';
+import { prepareRecordPhoto } from './photos';
 import { friendlyError } from './errors';
 import { demoState } from '../domain/demo';
 
@@ -78,10 +78,19 @@ export class StudyRepository {
         if (this.disposed || !this.online) break;
         const sent = this.state.records[id];
         try {
-          const uploaded = await uploadRecordPhoto(this.uid, sent);
+          const prepared = await prepareRecordPhoto(sent);
+          const uploaded = prepared.record;
           if (this.disposed) break;
           const { photoUri: _uri, photoPending: _pending, ...cloud } = uploaded;
-          await setDoc(doc(database, 'users', this.uid, 'records', id), { ...JSON.parse(JSON.stringify(cloud)), serverUpdatedAt: serverTimestamp() });
+          const batch = writeBatch(database);
+          if (prepared.image) {
+            batch.set(doc(database, 'users', this.uid, 'images', uploaded.photoId!), {
+              ...prepared.image, serverUpdatedAt: serverTimestamp(),
+            });
+          }
+          batch.set(doc(database, 'users', this.uid, 'records', id), { ...JSON.parse(JSON.stringify(cloud)), serverUpdatedAt: serverTimestamp() });
+          // Image and record reference either both commit, or remain pending together.
+          await batch.commit();
           await this.commit(state => acknowledge(state, sent, uploaded));
         } catch (error) { firstError ??= error; }
       }
