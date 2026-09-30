@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
+import { Image, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useStudy } from '../state/StudyProvider';
+import { StartupScreen } from './StartupScreen';
 import { AuthScreen } from './AuthScreen';
 import { DashboardScreen } from './DashboardScreen';
 import { PlannerScreen } from './PlannerScreen';
@@ -22,6 +23,11 @@ const navigation = [
 export default function StudyMate() {
   const { user, demo, authReady, ready, profile, pending, syncing, online, error: cloudError, remove, logout } = useStudy();
   const wide = useWindowDimensions().width >= 900;
+  const [startupComplete, setStartupComplete] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setStartupComplete(true), 3000);
+    return () => clearTimeout(timer);
+  }, []);
   const [tab, setTab] = useState('Home');
   const [editor, setEditor] = useState<{ kind: Kind; record?: StudyRecord } | null>(null);
   const [deleting, setDeleting] = useState<StudyRecord | null>(null);
@@ -30,7 +36,7 @@ export default function StudyMate() {
   useEffect(() => { scroll.current?.scrollTo({ y: 0, animated: false }); setError(''); }, [tab]);
   useEffect(() => { setTab('Home'); setEditor(null); setDeleting(null); setError(''); }, [user?.uid]);
   const onError = (value: unknown) => setError(friendlyError(value));
-  if (!authReady || (user && !ready)) return <SafeAreaView style={{ flex: 1, backgroundColor: p.background, alignItems: 'center', justifyContent: 'center', gap: 18, padding: 30 }}><Image source={require('../../assets/images/studymate-logo.png')} style={{ height: 150, width: 150, borderRadius: 22 }} /><ActivityIndicator color={p.primary} /><Text style={ui.muted}>Making a little space for your plans…</Text><Message text={cloudError} error />{cloudError && <Button label="Back to sign in" onPress={() => { void logout().catch(onError); }} />}</SafeAreaView>;
+  if (!startupComplete || !authReady || (user && !ready)) return <StartupScreen error={cloudError || error} onBackToSignIn={() => { void logout().catch(onError); }} />;
   if (!user) return <AuthScreen />;
   const onAdd = (kind: Kind) => setEditor({ kind });
   const onEdit = (record: StudyRecord) => setEditor({ kind: record.kind, record });

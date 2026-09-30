@@ -29,7 +29,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#F7F8F3",
+          "backgroundColor": "#104D40",
           "image": "./assets/images/studymate-logo.png",
           "imageWidth": 200
         }

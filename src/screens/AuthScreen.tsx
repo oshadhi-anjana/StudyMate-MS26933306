@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Image, KeyboardAvoidingView, Platform, ScrollView, Text, useWindowDimensions, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 import { createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth } from '../services/auth';
 import { friendlyError } from '../services/errors';
@@ -26,14 +27,7 @@ export function AuthScreen() {
     } catch (e) { setError(friendlyError(e)); } finally { setBusy(false); }
   };
   const changeMode = (value: typeof mode) => { setMode(value); setError(''); setMessage(''); };
-  return <SafeAreaView style={{ flex: 1, backgroundColor: p.background }}><KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1 }}><View style={{ flex: 1, flexDirection: wide ? 'row' : 'column', minHeight: wide ? 750 : undefined }}>
-    <View style={{ flex: wide ? 1.05 : undefined, backgroundColor: p.primaryDark, padding: wide ? 65 : 28, justifyContent: 'center', gap: 26 }}>
-      <View style={{ backgroundColor: 'white', borderRadius: 20, width: 100, height: 100, overflow: 'hidden' }}><Image source={require('../../assets/images/studymate-logo.png')} style={{ width: 100, height: 100 }} resizeMode="contain" accessibilityLabel="StudyMate logo" /></View>
-      <Text style={{ color: '#B9D9BF', fontSize: 12, fontWeight: '700', letterSpacing: 3 }}>A LITTLE FOCUS. A BIG FUTURE.</Text>
-      <Text style={{ fontSize: wide ? 56 : 34, lineHeight: wide ? 63 : 41, fontWeight: '800', color: '#F9F8E9', letterSpacing: -1.5 }}>Make room for{`\n`}your next{`\n`}bright idea.</Text>
-      <Text style={{ fontSize: 17, lineHeight: 28, color: '#CCE1D6', maxWidth: 380 }}>Your classes, deadlines and study goals. One calm place to bring it all together.</Text>
-      {wide && <View style={{ gap: 16, marginTop: 25 }}>{['Plan your week with confidence', 'Build focus, one session at a time', 'Keep learning, even when offline'].map((text, i) => <View style={ui.row} key={text}><Text style={{ color: '#E7C579', fontSize: 19 }}>0{i + 1}</Text><Text style={{ color: '#F6F4E9', fontSize: 14 }}>{text}</Text></View>)}</View>}
-    </View>
+  return <SafeAreaView style={{ flex: 1, backgroundColor: p.background }}><StatusBar style="dark" /><KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1 }}><View style={{ flex: 1, justifyContent: 'center' }}>
     <View style={{ flex: 1, padding: wide ? 64 : 28, justifyContent: 'center', alignItems: 'center' }}><View style={{ width: '100%', maxWidth: 410, gap: 20 }}>
       <Badge label="YOUR PERSONAL STUDY COMPANION" />
       <View style={{ gap: 8 }}><Text style={[ui.title, { fontSize: 34 }]}>{mode === 'register' ? 'A fresh start.' : mode === 'reset' ? 'Let’s get you back.' : 'Welcome back.'}</Text><Text style={ui.muted}>{mode === 'register' ? 'Create your account and make a little progress every day.' : mode === 'reset' ? 'We’ll send you a link to reset your password.' : 'Good things begin with a small plan. Sign in to yours.'}</Text></View>
