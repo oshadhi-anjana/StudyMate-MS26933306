@@ -1,14 +1,13 @@
 import React from 'react';
 import { ActivityIndicator, Image, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { StatusBar } from 'expo-status-bar';
 import { Button, Message } from '../components/study/Controls';
 import { palette as p, ui } from '../components/study/theme';
 
 export function StartupScreen({ error, onBackToSignIn }: { error?: string; onBackToSignIn: () => void }) {
   const wide = useWindowDimensions().width >= 900;
   return <SafeAreaView style={{ flex: 1, backgroundColor: p.primaryDark }}>
-    <StatusBar style="light" />
+
     <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: wide ? 65 : 28 }}>
       <View style={{ width: '100%', maxWidth: 560, alignSelf: 'center', gap: 26 }}>
         <View style={{ backgroundColor: 'white', borderRadius: 20, width: 100, height: 100, overflow: 'hidden' }}>
@@ -22,7 +21,7 @@ export function StartupScreen({ error, onBackToSignIn }: { error?: string; onBac
           <ActivityIndicator color="#B9D9BF" accessibilityLabel="Loading StudyMate" />
           <Text style={{ color: '#CCE1D6', fontSize: 13, textAlign: 'center' }}>Making a little space for your plans…</Text>
           <Message text={error || ''} error />
-          {!!error && <Button label="Back to sign in" variant="secondary" onPress={onBackToSignIn} />}
+          {!!error && <Button icon="sign-in" label="Back to sign in" variant="secondary" onPress={onBackToSignIn} />}
         </View>
       </View>
     </ScrollView>

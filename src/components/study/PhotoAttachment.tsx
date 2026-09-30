@@ -27,7 +27,7 @@ export function PhotoAttachment({ photoUri, photoURL, photoId, autoLoad = false 
   }, [photoUri, photoURL, photoId, user?.uid, online, autoLoad, attempt]);
   return <View style={{ gap: 10 }}>
     {!!uri && <Image source={{ uri }} style={{ width: '100%', height: autoLoad ? 230 : 160, borderRadius: 12 }} resizeMode="contain" accessibilityLabel="Attached study photo" onError={() => setError('This photo could not be displayed. Reopen the note or attach it again.')} />}
-    {!uri && photoId && <Button label={error ? 'Retry photo' : 'View photo'} variant="secondary" small busy={busy} onPress={() => setAttempt(value => value + 1)} />}
+    {!uri && photoId && <Button icon={error ? 'refresh' : 'image'} label={error ? 'Retry photo' : 'View photo'} variant="secondary" small busy={busy} onPress={() => setAttempt(value => value + 1)} />}
     <Message text={error} error />
   </View>;
 }

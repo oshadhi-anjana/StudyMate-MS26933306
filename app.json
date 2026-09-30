@@ -27,6 +27,13 @@
     "plugins": [
       "expo-router",
       [
+        "expo-status-bar",
+        {
+          "hidden": false,
+          "style": "light"
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "backgroundColor": "#104D40",

@@ -22,6 +22,6 @@ export function RecordCard({ record, records, onEdit, onDelete, onToggle }: { re
     {!!record.body && <Text style={ui.muted} numberOfLines={record.kind === 'note' ? 5 : 2}>{record.body}</Text>}
     {record.kind === 'task' && steps.length > 0 && <><Text style={ui.muted}>{done}/{steps.length} steps completed</Text><ProgressBar value={done / steps.length} label="Assignment steps" /></>}
     {record.kind === 'note' && !!(record.photoUri || record.photoURL || record.photoId) && <PhotoAttachment photoUri={record.photoUri} photoURL={record.photoURL} photoId={record.photoId} />}
-    <View style={[ui.row, { justifyContent: 'flex-end', gap: 4 }]}><Button label={record.kind === 'note' ? 'Open note' : 'Edit'} variant="ghost" small onPress={onEdit} /><Button label="Delete" variant="ghost" small onPress={onDelete} /></View>
+    <View style={[ui.row, { justifyContent: 'flex-end', gap: 4 }]}><Button icon={record.kind === 'note' ? 'file-text-o' : 'pencil'} label={record.kind === 'note' ? 'Open note' : 'Edit'} variant="ghost" small onPress={onEdit} /><Button icon="trash" label="Delete" variant="ghost" small onPress={onDelete} /></View>
   </Card>;
 }

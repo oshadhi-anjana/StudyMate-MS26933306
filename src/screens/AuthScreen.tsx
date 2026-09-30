@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 import { createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth } from '../services/auth';
 import { friendlyError } from '../services/errors';
@@ -27,20 +26,20 @@ export function AuthScreen() {
     } catch (e) { setError(friendlyError(e)); } finally { setBusy(false); }
   };
   const changeMode = (value: typeof mode) => { setMode(value); setError(''); setMessage(''); };
-  return <SafeAreaView style={{ flex: 1, backgroundColor: p.background }}><StatusBar style="dark" /><KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1 }}><View style={{ flex: 1, justifyContent: 'center' }}>
+  return <SafeAreaView style={{ flex: 1, backgroundColor: p.background }}><KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1 }}><View style={{ flex: 1, justifyContent: 'center' }}>
     <View style={{ flex: 1, padding: wide ? 64 : 28, justifyContent: 'center', alignItems: 'center' }}><View style={{ width: '100%', maxWidth: 410, gap: 20 }}>
-      <Badge label="YOUR PERSONAL STUDY COMPANION" />
+      {/* <Badge label="YOUR PERSONAL STUDY COMPANION" /> */}
       <View style={{ gap: 8 }}><Text style={[ui.title, { fontSize: 34 }]}>{mode === 'register' ? 'A fresh start.' : mode === 'reset' ? 'Let’s get you back.' : 'Welcome back.'}</Text><Text style={ui.muted}>{mode === 'register' ? 'Create your account and make a little progress every day.' : mode === 'reset' ? 'We’ll send you a link to reset your password.' : 'Good things begin with a small plan. Sign in to yours.'}</Text></View>
       {mode === 'register' && <Field label="Your name" value={name} onChangeText={setName} placeholder="e.g. Oshadhi" autoComplete="name" maxLength={80} />}
       <Field label="Email address" value={email} onChangeText={setEmail} placeholder="you@example.com" autoCapitalize="none" keyboardType="email-address" autoComplete="email" />
-      {mode !== 'reset' && <Field label="Password" value={password} onChangeText={setPassword} placeholder={mode === 'register' ? 'At least 8 characters' : 'Enter your password'} secureTextEntry autoComplete={mode === 'register' ? 'new-password' : 'current-password'} onSubmitEditing={() => void submit()} />}
+      {mode !== 'reset' && <Field key={mode} label="Password" value={password} onChangeText={setPassword} placeholder={mode === 'register' ? 'At least 8 characters' : 'Enter your password'} secureTextEntry autoComplete={mode === 'register' ? 'new-password' : 'current-password'} onSubmitEditing={() => void submit()} />}
       <Message text={sessionNotice} error /><Message text={error} error /><Message text={message} />
-      <Button label={mode === 'register' ? 'Create my account  →' : mode === 'reset' ? 'Send reset link' : 'Sign in  →'} onPress={() => void submit()} busy={busy} />
-      {mode === 'login' && <Button label="Forgot password?" variant="ghost" onPress={() => changeMode('reset')} />}
+      <Button icon={mode === 'register' ? 'user-plus' : mode === 'reset' ? 'envelope' : 'sign-in'} label={mode === 'register' ? 'Create my account' : mode === 'reset' ? 'Send reset link' : 'Sign in'} onPress={() => void submit()} busy={busy} />
+      {mode === 'login' && <Button icon="key" label="Forgot password?" variant="ghost" onPress={() => changeMode('reset')} />}
       <View style={{ height: 1, backgroundColor: p.border }} /><Text style={[ui.muted, { textAlign: 'center' }]}>{mode === 'login' ? 'New to StudyMate?' : 'Already have an account?'}</Text>
-      <Button label={mode === 'login' ? 'Create an account' : 'Back to sign in'} variant="secondary" onPress={() => changeMode(mode === 'login' ? 'register' : 'login')} disabled={busy} />
+      <Button icon={mode === 'login' ? 'user-plus' : 'sign-in'} label={mode === 'login' ? 'Create an account' : 'Back to sign in'} variant="secondary" onPress={() => changeMode(mode === 'login' ? 'register' : 'login')} disabled={busy} />
       <Text style={[ui.muted, { textAlign: 'center', fontSize: 11 }]}>Learn today. Grow tomorrow.</Text>
-      <Button label="Explore a local demo" variant="ghost" onPress={enterDemo} disabled={busy} />
+      <Button icon="compass" label="Explore a local demo" variant="ghost" onPress={enterDemo} disabled={busy} />
     </View></View>
   </View></ScrollView></KeyboardAvoidingView></SafeAreaView>;
 }
