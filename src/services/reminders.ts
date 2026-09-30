@@ -1,9 +1,31 @@
 import { Platform } from 'react-native';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { StudyRecord } from '../domain/models';
 import { timeMinutes } from '../domain/planner';
 
 let notificationApi: Promise<typeof import('./localNotifications')> | undefined;
 let handlerInstalled = false;
+let channelSetup: Promise<string | undefined> | undefined;
+async function reminderChannel(api: typeof import('./localNotifications')) {
+  if (Platform.OS !== 'android') return undefined;
+  channelSetup ??= (async () => {
+    try {
+      await api.setNotificationChannelAsync('study', { name: 'Study reminders', importance: api.AndroidImportance.HIGH });
+      return 'study';
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (Constants.executionEnvironment === ExecutionEnvironment.StoreClient &&
+          /NotificationsChannelsProvider/.test(message) && /null/i.test(message)) {
+        // This Expo Go runtime is missing the channel registry provider. Omitting
+        // channelId lets Expo's native notification builder create its fallback
+        // channel directly through Android's NotificationManager.
+        return undefined;
+      }
+      throw error;
+    }
+  })().catch(error => { channelSetup = undefined; throw error; });
+  return channelSetup;
+}
 async function notifications(installHandler = true) {
   notificationApi ??= import('./localNotifications').catch(error => {
     notificationApi = undefined;
@@ -20,9 +42,16 @@ async function notifications(installHandler = true) {
 export async function requestReminders() {
   if (Platform.OS === 'web') throw new Error('Scheduled reminders are available in the Android and iOS app.');
   const api = await notifications();
-  if (Platform.OS === 'android') await api.setNotificationChannelAsync('study', { name: 'Study reminders', importance: api.AndroidImportance.DEFAULT });
+  await reminderChannel(api);
   const result = await api.requestPermissionsAsync();
-  if (!result.granted) throw new Error('Notifications are disabled. Enable StudyMate notifications in your device settings.');
+  if (!result.granted) throw new Error(`Notifications are disabled. Enable ${Constants.executionEnvironment === ExecutionEnvironment.StoreClient ? 'Expo Go' : 'StudyMate'} notifications in your device settings.`);
+}
+export async function testReminder() {
+  await requestReminders();
+  const api = await notifications();
+  const channelId = await reminderChannel(api);
+  await api.cancelScheduledNotificationAsync('reminder-test');
+  await api.scheduleNotificationAsync({ identifier: 'reminder-test', content: { title: 'StudyMate reminders are working', body: 'Your device received this test reminder.', sound: true }, trigger: { type: api.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 10, ...(channelId ? { channelId } : {}) } });
 }
 export async function clearReminders() {
   if (Platform.OS === 'web') return;
@@ -40,22 +69,27 @@ export async function scheduleFocusReminder(endAt: number, mode: string) {
   const api = await notifications();
   await api.cancelScheduledNotificationAsync('focus-timer');
   if (endAt <= Date.now() || !(await api.getPermissionsAsync()).granted) return;
-  await api.scheduleNotificationAsync({ identifier: 'focus-timer', content: { title: mode === 'focus' ? 'Your focus session is complete' : 'Ready for a fresh start?', body: 'Open StudyMate to save your progress and choose your next step.', sound: true }, trigger: { type: api.SchedulableTriggerInputTypes.DATE, date: new Date(endAt), channelId: 'study' } });
+  const channelId = await reminderChannel(api);
+  await api.scheduleNotificationAsync({ identifier: 'focus-timer', content: { title: mode === 'focus' ? 'Your focus session is complete' : 'Ready for a fresh start?', body: 'Open StudyMate to save your progress and choose your next step.', sound: true }, trigger: { type: api.SchedulableTriggerInputTypes.DATE, date: new Date(endAt), ...(channelId ? { channelId } : {}) } });
 }
 
 /** Reconcile only changed reminders, keeping within the iOS pending-notification limit. */
 export async function reconcileReminders(uid: string, records: StudyRecord[], enabled: boolean) {
   if (Platform.OS === 'web') return;
   const api = await notifications(enabled);
-  if (!enabled) await api.cancelScheduledNotificationAsync('focus-timer');
+  if (!enabled) {
+    await api.cancelScheduledNotificationAsync('focus-timer');
+    await api.cancelScheduledNotificationAsync('reminder-test');
+  }
   const scheduled = await api.getAllScheduledNotificationsAsync();
   const allowed = enabled && (await api.getPermissionsAsync()).granted;
+  const channelId = allowed ? await reminderChannel(api) : undefined;
   const candidates = allowed ? records.filter(r => !r.deleted && !r.completed && r.reminderMinutes !== undefined && r.reminderMinutes >= 0 && ['task', 'exam', 'class'].includes(r.kind))
     .sort((a, b) => (a.dueAt ?? Infinity) - (b.dueAt ?? Infinity)).slice(0, 50) : [];
   const desired = new Map<string, { record: StudyRecord; signature: string }>();
   for (const record of candidates) {
     if (record.kind !== 'class' && (record.dueAt! - record.reminderMinutes! * 60000) <= Date.now()) continue;
-    desired.set(`planner:${uid}:${record.id}`, { record, signature: `${record.title}:${record.dueAt}:${record.day}:${record.startTime}:${record.reminderMinutes}` });
+    desired.set(`planner:${uid}:${record.id}`, { record, signature: `${record.title}:${record.dueAt}:${record.day}:${record.startTime}:${record.reminderMinutes}:${channelId ?? 'default'}` });
   }
   for (const old of scheduled) {
     if (old.identifier.startsWith('planner:') && old.content.data?.signature !== desired.get(old.identifier)?.signature) await api.cancelScheduledNotificationAsync(old.identifier);
@@ -67,8 +101,8 @@ export async function reconcileReminders(uid: string, records: StudyRecord[], en
       const total = timeMinutes(record.startTime!) - record.reminderMinutes!;
       const minutes = (total + 1440) % 1440;
       const weekday = ((record.day! + (total < 0 ? -1 : 0) + 7) % 7) + 1;
-      trigger = { type: api.SchedulableTriggerInputTypes.WEEKLY, weekday, hour: Math.floor(minutes / 60), minute: minutes % 60, channelId: 'study' };
-    } else trigger = { type: api.SchedulableTriggerInputTypes.DATE, date: new Date(record.dueAt! - record.reminderMinutes! * 60000), channelId: 'study' };
+      trigger = { type: api.SchedulableTriggerInputTypes.WEEKLY, weekday, hour: Math.floor(minutes / 60), minute: minutes % 60, ...(channelId ? { channelId } : {}) };
+    } else trigger = { type: api.SchedulableTriggerInputTypes.DATE, date: new Date(record.dueAt! - record.reminderMinutes! * 60000), ...(channelId ? { channelId } : {}) };
     await api.scheduleNotificationAsync({ identifier, content: { title: record.title, body: record.kind === 'class' ? `Your class begins at ${record.startTime}.` : `Your ${record.kind === 'exam' ? 'exam' : 'task'} is coming up. Open StudyMate to prepare.`, data: { signature }, sound: true }, trigger });
   }
 }
