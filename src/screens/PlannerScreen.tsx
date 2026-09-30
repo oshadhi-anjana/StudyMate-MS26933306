@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+import { Text } from '../components/study/Typography';
 import { useStudy } from '../state/StudyProvider';
 import { Kind, StudyRecord, days } from '../domain/models';
 import { Button, Chips, EmptyState, Field } from '../components/study/Controls';

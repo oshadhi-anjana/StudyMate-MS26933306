@@ -1,4 +1,9 @@
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
+export const sansFont = Platform.select({
+  android: 'sans-serif',
+  ios: 'System',
+  default: 'Arial, Helvetica, sans-serif',
+});
 export const palette = {
   background: '#F7F8F3', surface: '#FFFFFF', ink: '#192E29', muted: '#65756D',
   primary: '#176B58', primaryDark: '#104D40', mint: '#E5F1EA', gold: '#A76E10',

@@ -1,6 +1,7 @@
 import { PhotoAttachment } from './PhotoAttachment';
 import React from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+import { Text } from './Typography';
 import { StudyRecord, days } from '../../domain/models';
 import { clockLabel, dateLabel, daysUntil, studyMinutes } from '../../domain/planner';
 import { Badge, Button, Card, Check, ProgressBar } from './Controls';

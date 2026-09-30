@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+import { Text } from './Typography';
 import { DatePickerDialog, Host, TimePickerDialog } from '@expo/ui/jetpack-compose';
 import { Button } from './Controls';
 import { palette as p, ui } from './theme';

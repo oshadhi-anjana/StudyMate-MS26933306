@@ -1,8 +1,9 @@
 import React from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, TextInputProps, View, ViewStyle, KeyboardAvoidingView, Platform } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, TextInput, TextInputProps, View, ViewStyle, KeyboardAvoidingView, Platform } from 'react-native';
+import { Text } from './Typography';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Icon, IconName } from './Icon';
-import { palette as p, ui } from './theme';
+import { palette as p, sansFont, ui } from './theme';
 
 export function Button({ label, onPress, variant = 'primary', busy, disabled, small = false, icon }: {
   label: string; onPress: () => void; variant?: 'primary' | 'secondary' | 'ghost' | 'danger'; busy?: boolean; disabled?: boolean; small?: boolean; icon?: IconName;
@@ -62,7 +63,7 @@ export function ConfirmDialog({ title, description, onConfirm, onClose }: { titl
 const styles = StyleSheet.create({
   button: { minHeight: 46, paddingHorizontal: 20, paddingVertical: 11, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   label: { color: p.ink, fontSize: 13, fontWeight: '600' },
-  input: { minHeight: 48, borderRadius: 12, borderWidth: 1, borderColor: p.border, backgroundColor: '#FBFCFA', color: p.ink, fontSize: 15, paddingHorizontal: 14, paddingVertical: 12 },
+  input: { fontFamily: sansFont, minHeight: 48, borderRadius: 12, borderWidth: 1, borderColor: p.border, backgroundColor: '#FBFCFA', color: p.ink, fontSize: 15, paddingHorizontal: 14, paddingVertical: 12 },
   card: { backgroundColor: p.surface, borderWidth: 1, borderColor: p.border, borderRadius: 18, padding: 20, gap: 12 },
   chip: { paddingVertical: 10, paddingHorizontal: 14, minHeight: 40, borderWidth: 1, borderColor: p.border, backgroundColor: 'white', borderRadius: 10 },
   emptyIcon: { width: 54, height: 54, backgroundColor: p.mint, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },

@@ -1,5 +1,6 @@
 import React from 'react';
-import { ActivityIndicator, Image, ScrollView, Text, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, Image, ScrollView, useWindowDimensions, View } from 'react-native';
+import { Text } from '../components/study/Typography';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Message } from '../components/study/Controls';
 import { palette as p, ui } from '../components/study/theme';

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+import { Text } from '../components/study/Typography';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { auth } from '../services/auth';
 import { useStudy } from '../state/StudyProvider';

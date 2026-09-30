@@ -1,6 +1,7 @@
 import { Icon } from '../components/study/Icon';
 import React from 'react';
-import { Pressable, Text, View, useWindowDimensions } from 'react-native';
+import { Pressable, View, useWindowDimensions } from 'react-native';
+import { Text } from '../components/study/Typography';
 import { useStudy } from '../state/StudyProvider';
 import { Badge, Button, Card, Check, EmptyState, ProgressBar } from '../components/study/Controls';
 import { palette as p, ui } from '../components/study/theme';

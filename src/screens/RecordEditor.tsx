@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Platform, Text, View } from 'react-native';
+import { Platform, View } from 'react-native';
+import { Text } from '../components/study/Typography';
 import { randomUUID } from 'expo-crypto';
 import { days, Kind, RecordInput, StudyRecord, subjectColors } from '../domain/models';
 import { Button, Chips, Field, Message, Sheet, Check } from '../components/study/Controls';

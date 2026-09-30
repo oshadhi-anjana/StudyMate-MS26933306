@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, Text, useWindowDimensions, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, useWindowDimensions, View } from 'react-native';
+import { Text } from '../components/study/Typography';
 import { createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth } from '../services/auth';

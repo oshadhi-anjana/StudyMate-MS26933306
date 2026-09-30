@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+import { Text } from '../components/study/Typography';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { randomUUID } from 'expo-crypto';
 import { useStudy } from '../state/StudyProvider';
