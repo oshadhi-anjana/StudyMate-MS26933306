@@ -88,7 +88,7 @@ function StudyMateContent({ loading }: { loading: boolean }) {
     <ScrollView ref={scroll} keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: wide ? 34 : 20, paddingBottom: 40 }}><View style={{ width: '100%', maxWidth: 1180, alignSelf: 'center', gap: 16 }}>
       {demo && <Message text="You’re exploring a local demo. Changes stay on this device. Sign out in Profile to create or access your Firebase account." />}
       {!!cloudError && <Message text={cloudError} error />}{!!error && <View style={{ gap: 6 }}><Message text={error} error /><Button icon="times" label="Dismiss" small variant="ghost" onPress={() => setError('')} /></View>}
-      {tab === 'Home' && <DashboardScreen onAdd={onAdd} onEdit={onEdit} navigate={setTab} onError={onError} />}
+      {tab === 'Home' && <DashboardScreen onAdd={onAdd} onEdit={onEdit} navigate={setTab} />}
       {tab === 'Planner' && <PlannerScreen onAdd={onAdd} onEdit={onEdit} onDelete={setDeleting} onError={onError} />}
       <View style={{ display: tab === 'Focus' ? 'flex' : 'none' }}><FocusScreen key={user.uid} /></View>
       {tab === 'Progress' && <ProgressScreen />}{tab === 'Profile' && <ProfileScreen />}
