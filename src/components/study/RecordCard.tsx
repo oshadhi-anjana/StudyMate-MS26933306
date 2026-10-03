@@ -28,7 +28,7 @@ export function RecordCard({ record, records, onEdit, onDelete, onToggle }: { re
     <View style={[ui.row, { justifyContent: 'flex-end', gap: 4 }]}>
       <Button icon="eye" label="View" variant="ghost" small onPress={() => setViewing(true)} />
       {!(record.kind === 'task' && record.completed) && <Button icon="pencil" label="Edit" variant="ghost" small onPress={onEdit} />}
-      {record.kind === 'note' && !!(record.photoUri || record.photoURL || record.photoId) && <Button icon="image" label="View image" variant="ghost" small onPress={() => setViewingImage(true)} />}
+      {['note', 'task'].includes(record.kind) && !!(record.photoUri || record.photoURL || record.photoId) && <Button icon="image" label="View image" variant="ghost" small onPress={() => setViewingImage(true)} />}
       <Button icon="trash" label="Delete" variant="ghost" small onPress={onDelete} />
     </View>
     {viewing && <Sheet title="Details" onClose={() => setViewing(false)}>
@@ -41,8 +41,8 @@ export function RecordCard({ record, records, onEdit, onDelete, onToggle }: { re
       {record.kind === 'goal' && <Text style={ui.body}>{Math.round(minutes)} / {record.targetMinutes} minutes · {dateLabel(record.date)} – {dateLabel(record.dueAt)}</Text>}
       {!!record.body && <Text style={ui.body}>{record.body}</Text>}
       {steps.map(step => <Text key={step.id} style={ui.body}>{step.done ? '✓' : '○'} {step.title}</Text>)}
-      {record.kind === 'note' && !!(record.photoUri || record.photoURL || record.photoId) && <PhotoAttachment photoUri={record.photoUri} photoURL={record.photoURL} photoId={record.photoId} autoLoad />}
+      {['note', 'task'].includes(record.kind) && !!(record.photoUri || record.photoURL || record.photoId) && <PhotoAttachment photoUri={record.photoUri} photoURL={record.photoURL} photoId={record.photoId} autoLoad />}
     </Sheet>}
-    {viewingImage && <Sheet title="Note image" onClose={() => setViewingImage(false)}><PhotoAttachment photoUri={record.photoUri} photoURL={record.photoURL} photoId={record.photoId} autoLoad /></Sheet>}
+    {viewingImage && <Sheet title="Attached image" onClose={() => setViewingImage(false)}><PhotoAttachment photoUri={record.photoUri} photoURL={record.photoURL} photoId={record.photoId} autoLoad /></Sheet>}
   </Card>;
 }
