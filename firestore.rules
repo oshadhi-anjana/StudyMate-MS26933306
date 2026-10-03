@@ -1,0 +1,48 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId}/records/{recordId} {
+      function owner() { return request.auth != null && request.auth.uid == userId; }
+      function validRecord() {
+        let d = request.resource.data;
+        return d.keys().hasAll(['id', 'kind', 'title', 'updatedAt', 'revision', 'serverUpdatedAt'])
+          && d.keys().hasOnly(['id', 'kind', 'title', 'updatedAt', 'revision', 'serverUpdatedAt', 'deleted', 'subjectId', 'color', 'body', 'dueAt', 'priority', 'completed', 'estimatedMinutes', 'day', 'startTime', 'endTime', 'location', 'targetMinutes', 'minutes', 'date', 'subtasks', 'photoId', 'photoURL', 'photoPath', 'reminderMinutes', 'dailyMinutes', 'availableStart', 'availableEnd', 'focusMinutes', 'breakMinutes', 'remindersEnabled'])
+          && d.id == recordId
+          && d.kind in ['subject', 'class', 'task', 'exam', 'goal', 'note', 'session', 'profile']
+          && d.title is string && d.title.size() > 0 && d.title.size() <= 120
+          && d.revision is string && d.revision.size() <= 80
+          && d.updatedAt is number
+          && (!('photoId' in d) || (d.photoId is string && d.photoId.size() <= 200))
+          && d.serverUpdatedAt == request.time
+          && (!('body' in d) || (d.body is string && d.body.size() <= 10000))
+          && (!('subtasks' in d) || (d.subtasks is list && d.subtasks.size() <= 30))
+          && (!('minutes' in d) || (d.minutes is number && d.minutes >= 0 && d.minutes <= 180))
+          && (!('photoPath' in d) || d.photoPath == '' || d.photoPath.matches('users/' + userId + '/notes/' + recordId + '-.*[.]jpg'));
+      }
+      allow read: if owner();
+      allow create, update: if owner() && validRecord();
+      allow delete: if false;
+    }
+    match /users/{userId}/images/{imageId} {
+      function owner() { return request.auth != null && request.auth.uid == userId; }
+      function validImage() {
+        let d = request.resource.data;
+        return d.keys().hasAll(['recordId', 'revision', 'mimeType', 'base64', 'bytes', 'serverUpdatedAt'])
+          && d.keys().hasOnly(['recordId', 'revision', 'mimeType', 'base64', 'bytes', 'serverUpdatedAt'])
+          && d.recordId is string && d.recordId.size() <= 100
+          && d.revision is string && d.revision.size() <= 80
+          && imageId == d.recordId + '-' + d.revision
+          && d.mimeType == 'image/jpeg'
+          && d.base64 is string && d.base64.size() > 0 && d.base64.size() <= 273068
+          && d.bytes is int && d.bytes > 0 && d.bytes <= 204800
+          && d.serverUpdatedAt == request.time
+          && getAfter(/databases/$(database)/documents/users/$(userId)/records/$(d.recordId)).data.photoId == imageId;
+      }
+      allow read: if owner();
+      allow create: if owner() && validImage();
+      allow update: if owner() && validImage() && request.resource.data.base64 == resource.data.base64;
+      allow delete: if owner();
+    }
+  }
+}
+
