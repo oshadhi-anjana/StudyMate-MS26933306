@@ -1,42 +1,64 @@
 {
   "expo": {
-    "name": "SmartWallet-MS26933306",
-    "slug": "SmartWallet-MS26933306",
+    "name": "StudyMate",
+    "slug": "studymate-ms26933306",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "smartwalletms26933306",
-    "userInterfaceStyle": "automatic",
+    "icon": "./assets/images/studymate-logo.png",
+    "scheme": "studymate",
+    "userInterfaceStyle": "light",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "supportsTablet": true,
+      "bundleIdentifier": "com.studymate.ms26933306",
+      "icon": "./assets/images/studymate-logo.png"
     },
     "android": {
+      "package": "com.studymate.ms26933306",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
-      },
-      "predictiveBackGestureEnabled": false
+        "foregroundImage": "./assets/images/studymate-logo.png",
+        "backgroundColor": "#FFFFFF"
+      }
     },
     "web": {
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "output": "single",
+      "favicon": "./assets/images/studymate-logo.png",
+      "name": "StudyMate"
     },
     "plugins": [
       "expo-router",
       [
+        "expo-status-bar",
+        {
+          "hidden": false,
+          "style": "light"
+        }
+      ],
+      [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "backgroundColor": "#104D40",
+          "image": "./assets/images/studymate-logo.png",
+          "imageWidth": 200
         }
-      ]
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Choose a photo to attach to your study notes.",
+          "cameraPermission": "Photograph handwritten notes and assignment instructions.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#176B58"
+        }
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
-      "typedRoutes": true,
-      "reactCompiler": true
+      "typedRoutes": true
     }
   }
 }
