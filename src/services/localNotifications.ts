@@ -1,5 +1,5 @@
 /**
- * SDK 57 local-notification adapter.
+ * SDK 58 local-notification adapter.
  *
  * Importing the package root also loads DevicePushTokenAutoRegistration.fx,
  * which reports an unsupported remote-push error in Android Expo Go.

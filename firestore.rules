@@ -21,7 +21,7 @@ service cloud.firestore {
       }
       allow read: if owner();
       allow create, update: if owner() && validRecord();
-      allow delete: if false;
+      allow delete: if owner();
     }
     match /users/{userId}/images/{imageId} {
       function owner() { return request.auth != null && request.auth.uid == userId; }

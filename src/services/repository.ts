@@ -1,8 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { randomUUID } from 'expo-crypto';
-import { collection, doc, getDocsFromServer, limit, orderBy, query, serverTimestamp, writeBatch, startAfter, where, Timestamp, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
+import { collection, doc, documentId, getDocsFromServer, limit, orderBy, query, serverTimestamp, writeBatch, startAfter, where, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 import { emptyState, LocalState, RecordInput, StudyRecord } from '../domain/models';
-import { acknowledge, mergeRemote } from '../domain/sync';
+import { acknowledge, reconcileRemote } from '../domain/sync';
 import { validateRecord } from '../domain/planner';
 import { database } from './firebase';
 import { prepareRecordPhoto } from './photos';
@@ -37,6 +37,7 @@ export class StudyRepository {
     } catch (error) { this.error = friendlyError(error); }
     this.emit();
   }
+  //saves the planner using AsyncStorage
   private commit(change: (previous: LocalState) => LocalState) {
     const operation = this.writes.then(async () => {
       if (this.disposed) return;
@@ -53,6 +54,11 @@ export class StudyRepository {
     const record: StudyRecord = { ...input, title: input.title.trim(), id: input.id ?? randomUUID(), updatedAt: Date.now(), revision: randomUUID() };
     await this.commit(state => {
       if (!record.deleted) validateRecord(record, Object.values(state.records));
+      if (record.deleted && this.localOnly) {
+        const records = { ...state.records };
+        delete records[record.id];
+        return { ...state, records };
+      }
       return { ...state, records: { ...state.records, [record.id]: record }, pending: this.localOnly ? {} : { ...state.pending, [record.id]: record.revision } };
     });
     void this.sync();
@@ -78,6 +84,22 @@ export class StudyRepository {
         if (this.disposed || !this.online) break;
         const sent = this.state.records[id];
         try {
+          if (sent.deleted) {
+            // Purge all attachment revisions before removing the record. Keep the
+            // local deletion queued until every server operation has succeeded.
+            let moreImages = true;
+            while (moreImages) {
+              const images = await getDocsFromServer(query(collection(database, 'users', this.uid, 'images'), where('recordId', '==', id), limit(400)));
+              if (this.disposed || !this.online) throw new Error('Deletion will finish when connected.');
+              const batch = writeBatch(database);
+              images.docs.forEach(image => batch.delete(image.ref));
+              moreImages = images.size === 400;
+              if (!moreImages) batch.delete(doc(database, 'users', this.uid, 'records', id));
+              await batch.commit();
+            }
+            await this.commit(state => acknowledge(state, sent, sent));
+            continue;
+          }
           const prepared = await prepareRecordPhoto(sent);
           const uploaded = prepared.record;
           if (this.disposed) break;
@@ -96,15 +118,14 @@ export class StudyRepository {
       }
       if (!this.disposed && this.online) {
         const remote: StudyRecord[] = [];
-        let watermark = this.state.remoteCursor ?? 0;
         let cursor: QueryDocumentSnapshot<DocumentData> | undefined;
         do {
           const base = collection(database, 'users', this.uid, 'records');
-          const page = await getDocsFromServer(query(base, where('serverUpdatedAt', '>=', Timestamp.fromMillis(this.state.remoteCursor ?? 0)), orderBy('serverUpdatedAt'), ...(cursor ? [startAfter(cursor)] : []), limit(200)));
-          remote.push(...page.docs.map(item => { const { serverUpdatedAt, ...data } = item.data(); watermark = Math.max(watermark, serverUpdatedAt.toMillis()); return { ...data, id: item.id } as StudyRecord; }));
+          const page = await getDocsFromServer(query(base, orderBy(documentId()), ...(cursor ? [startAfter(cursor)] : []), limit(200)));
+          remote.push(...page.docs.map(item => { const { serverUpdatedAt, ...data } = item.data(); return { ...data, id: item.id } as StudyRecord; }));
           cursor = page.size === 200 ? page.docs[page.docs.length - 1] : undefined;
         } while (cursor && !this.disposed);
-        await this.commit(state => ({ ...mergeRemote(state, remote), lastSync: Date.now(), remoteCursor: watermark }));
+        if (!this.disposed && this.online) await this.commit(state => ({ ...reconcileRemote(state, remote), lastSync: Date.now(), remoteCursor: undefined }));
       }
       if (firstError) throw firstError;
       this.failures = 0; this.retryAfter = 0;

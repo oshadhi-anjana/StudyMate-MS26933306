@@ -5,13 +5,27 @@ const { test } = require('node:test');
 // Test the actual TypeScript domain modules without a second implementation.
 require.extensions['.ts'] = (module, filename) => module._compile(ts.transpileModule(fs.readFileSync(filename, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, filename);
 const planner = require('../src/domain/planner.ts');
-const { acknowledge, mergeRemote } = require('../src/domain/sync.ts');
+const { acknowledge, mergeRemote, reconcileRemote } = require('../src/domain/sync.ts');
 const { emptyState } = require('../src/domain/models.ts');
 const { demoState } = require('../src/domain/demo.ts');
 const { completeSignOut } = require('../src/domain/signOut.ts');
 const now = new Date(2026, 8, 28, 8, 0, 0).getTime();
 const record = (data = {}) => ({ id: 'a', kind: 'task', title: 'Study', updatedAt: now, revision: 'r1', dueAt: now + 86400000, estimatedMinutes: 30, ...data });
 const lecture = (start, end, extra = {}) => record({ kind: 'class', day: 1, startTime: start, endTime: end, ...extra });
+
+test('confirmed permanent deletion removes local record and pending operation', () => {
+ const deleted = record({ deleted: true });
+ const state = { ...emptyState(), records: { a: deleted }, pending: { a: 'r1' } };
+ assert.deepEqual(acknowledge(state, deleted, deleted).records, {});
+ assert.deepEqual(acknowledge(state, deleted, deleted).pending, {});
+});
+test('complete server listing removes missing records but preserves pending offline edits and deletes', () => {
+ const state = { ...emptyState(), records: { a: record(), b: record({ id: 'b' }), c: record({ id: 'c', deleted: true }) }, pending: { b: 'r1', c: 'r1' } };
+ const result = reconcileRemote(state, []);
+ assert.equal(result.records.a, undefined);
+ assert.equal(result.records.b.title, 'Study');
+ assert.equal(result.records.c.deleted, true);
+});
 
 test('adjacent classes do not clash', () => assert.equal(planner.clash(lecture('10:00', '11:00'), [lecture('09:00', '10:00', { id: 'b' })]), undefined));
 test('contained and overlapping classes clash', () => assert.ok(planner.clash(lecture('09:30', '10:30'), [lecture('09:00', '11:00', { id: 'b' })])));
