@@ -14,8 +14,10 @@ import { friendlyError } from '../services/errors';
 export const kindLabels: Record<Kind, string> = { subject: 'subject', class: 'class', task: 'assignment / task', exam: 'exam', goal: 'study goal', note: 'note', session: 'study session', profile: 'profile' };
 export function RecordEditor({ kind, record, onClose }: { kind: Kind; record?: StudyRecord; onClose: () => void }) {
   const { records, save, user, profile, demo } = useStudy();
-  const [draft, setDraft] = useState<RecordInput>(record ?? { kind, title: '', subjectId: '', color: subjectColors[0], body: '', dueAt: Date.now() + 86400000,
-    priority: 'medium', estimatedMinutes: 60, day: new Date().getDay(), startTime: '09:00', endTime: '10:00', location: '', targetMinutes: 300, date: Date.now(), subtasks: [], reminderMinutes: -1 });
+  const [draft, setDraft] = useState<RecordInput>(record ?? {
+    kind, title: '', subjectId: '', color: subjectColors[0], body: '', dueAt: Date.now() + 86400000,
+    priority: 'medium', estimatedMinutes: 60, day: new Date().getDay(), startTime: '09:00', endTime: '10:00', location: '', targetMinutes: 300, date: Date.now(), subtasks: [], reminderMinutes: -1
+  });
   const [busy, setBusy] = useState(false); const [photoBusy, setPhotoBusy] = useState(false); const [error, setError] = useState(''); const [subtask, setSubtask] = useState('');
   const patch = (values: Partial<RecordInput>) => setDraft(previous => ({ ...previous, ...values }));
   const subjects = records.filter(item => item.kind === 'subject');
