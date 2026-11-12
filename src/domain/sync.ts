@@ -5,7 +5,20 @@ export function acknowledge(state: LocalState, sent: StudyRecord, uploaded: Stud
   if (state.pending[sent.id] !== sent.revision) return state;
   const pending = { ...state.pending };
   delete pending[sent.id];
-  return { ...state, pending, records: { ...state.records, [sent.id]: uploaded } };
+  const records = { ...state.records, [sent.id]: uploaded };
+  if (sent.deleted) delete records[sent.id];
+  return { ...state, pending, records };
+}
+
+/** A complete server listing also removes records deleted on another device. */
+export function reconcileRemote(state: LocalState, remote: StudyRecord[]): LocalState {
+  const ids = new Set(remote.map(record => record.id));
+  const merged = mergeRemote(state, remote);
+  const records = { ...merged.records };
+  for (const id of Object.keys(records)) {
+    if (!state.pending[id] && !ids.has(id)) delete records[id];
+  }
+  return { ...merged, records };
 }
 
 /** Pending edits win locally. Server arrival order resolves cross-device conflicts. */

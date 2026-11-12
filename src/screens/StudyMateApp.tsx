@@ -2,7 +2,7 @@ import { Icon } from '../components/study/Icon';
 import { StatusBar } from 'expo-status-bar';
 import { Stack } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { AppState, Image, Platform, Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
+import { AppState, Image, Platform, Pressable, ScrollView, ScrollViewInstance, useWindowDimensions, View } from 'react-native';
 import { Text } from '../components/study/Typography';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useStudy } from '../state/StudyProvider';
@@ -64,7 +64,7 @@ function StudyMateContent({ loading }: { loading: boolean }) {
   const [editor, setEditor] = useState<{ kind: Kind; record?: StudyRecord } | null>(null);
   const [deleting, setDeleting] = useState<StudyRecord | null>(null);
   const [error, setError] = useState('');
-  const scroll = useRef<ScrollView>(null);
+  const scroll = useRef<ScrollViewInstance>(null);
   useEffect(() => { scroll.current?.scrollTo({ y: 0, animated: false }); setError(''); }, [tab]);
   useEffect(() => { setTab('Home'); setEditor(null); setDeleting(null); setError(''); }, [user?.uid]);
   const onError = (value: unknown) => setError(friendlyError(value));

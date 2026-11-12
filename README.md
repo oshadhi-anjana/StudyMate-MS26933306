@@ -4,14 +4,14 @@ A student-only Expo / React Native app for subjects, timetables, assignments, st
 
 ## Start the app
 
-Requirements: Node.js 22.13 or later and npm. Dependencies are already installed in this workspace.
+Requirements: Node.js 22.13+ (22.x), 24.3+ (24.x), or 26+, and npm. This project uses Expo SDK 58 and requires Expo Go with SDK 58 support.
 
 ```sh
 npm install
 npm start
 ```
 
-Scan the Expo QR code using a compatible Expo Go installation, or run on an Android emulator. For the browser preview:
+Scan the Expo QR code using Expo Go with SDK 58 support, or run on an Android emulator. After upgrading, stop the previous Metro server and run `npx expo start --clear` before scanning again. For the browser preview:
 
 ```sh
 npm run web
@@ -64,7 +64,7 @@ Firebase Web Analytics from the pasted snippet is intentionally omitted. It is n
 
 ### Android Expo Go notification import
 
-StudyMate uses local reminders, which remain supported in Expo Go. In SDK 57, importing the `expo-notifications` package root also loads remote push-token registration and can report the SDK 53 remote-push error on Android Expo Go. `src/services/localNotifications.ts` therefore imports only the local scheduling, permission and presentation APIs. This adapter uses SDK-specific subpaths; the notification import-graph tests guard against remote registration being reintroduced during an upgrade.
+StudyMate uses local reminders, which remain supported in Expo Go. Importing the `expo-notifications` package root also loads remote push-token registration and can report an unsupported remote-push error on Android Expo Go. `src/services/localNotifications.ts` therefore imports only the local scheduling, permission and presentation APIs. This adapter uses SDK 58 subpaths; the notification import-graph tests guard against remote registration being reintroduced during an upgrade.
 
 After updating from the original implementation, stop Metro and restart with `npx expo start --clear`, then reload Expo Go. No Firebase email setting is involved in this notification import error. Remote push notifications would require a development/standalone build; StudyMate does not request push tokens.
 
@@ -76,7 +76,7 @@ For an installable Android preview APK, connect your Expo account/project and ru
 npx eas-cli build --platform android --profile preview
 ```
 
-`eas.json` includes an APK preview profile. Building/deploying through your Expo account is a separate step; no APK has been generated here. Keep the supplied SDK 57-compatible dependency versions.
+`eas.json` includes an APK preview profile. Building/deploying through your Expo account is a separate step; no APK has been generated here. Keep the supplied SDK 58-compatible dependency versions.
 
 ## Verification
 
@@ -130,9 +130,10 @@ The student selected EdTech and requested the additional digit reduction `32 →
 - Offline use requires a previously persisted sign-in. First sign-in, reset email and registration need connectivity.
 - Local changes persist before cloud upload. The status banner distinguishes offline/pending work from synchronized work.
 - Sync occurs when the app is active/reconnected; closed-app background sync is not promised.
-- Concurrent edits to the same record on different devices use last arrival at the server. Deletions synchronize as tombstones.
+- Concurrent edits to the same record on different devices use last arrival at the server. Deletions permanently remove the Firestore record and its image documents after reconnecting. Sync reads the complete record collection to remove cached records deleted on other devices. Deploy the updated firestore.rules to allow owners to delete records.
 - Photos captured on the current device remain available locally. Remote-device photos are downloaded when opened; the five most recently downloaded images per account are cached for offline viewing.
 - Photos are compressed JPEGs limited to 200 KB before Base64 encoding. Image documents live in `users/<uid>/images`; planner documents hold only an image reference. Image and planner writes commit atomically and failed uploads remain queued. Old unreferenced images/camera copies are not automatically garbage-collected.
 - New photos use authenticated Firestore reads, without public download URLs. Firestore free quotas still apply; Base64 adds about 33% to image size. Previously queued oversized photos are recompressed during synchronization.
 - The offline snapshot is application-private storage, not an encrypted vault. Sign-out retains it for that same account; pending work uploads after signing in again.
 - Actual Firebase credentials/rule deployment, native permission behavior and notification delivery must be checked with your own account and phone before the viva.
+
