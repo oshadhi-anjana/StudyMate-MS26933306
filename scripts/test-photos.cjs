@@ -54,9 +54,48 @@ test('image cache isolates accounts and provides offline access after download',
 test('failed atomic image write keeps outbox pending, successful retry acknowledges it',async()=>{
  let fail=true;const batches=[];
  const models=load('domain/models.ts');const sync=load('domain/sync.ts');
- const firestore={writeBatch:()=>{const writes=[];batches.push(writes);return{set:(path,data)=>writes.push({path,data}),commit:async()=>{if(fail)throw Error('Connection lost');}};},doc:(_db,...p)=>p.join('/'),serverTimestamp:()=>123,collection:()=>0,query:()=>0,where:()=>0,orderBy:()=>0,limit:()=>0,Timestamp:{fromMillis:n=>n},getDocsFromServer:async()=>({docs:[],size:0})};
+ const firestore={writeBatch:()=>{const writes=[];batches.push(writes);return{set:(path,data)=>writes.push({path,data}),commit:async()=>{if(fail)throw Error('Connection lost');}};},doc:(_db,...p)=>p.join('/'),serverTimestamp:()=>123,collection:()=>0,query:()=>0,where:()=>0,orderBy:()=>0,limit:()=>0,documentId:()=>'__name__',getDocsFromServer:async()=>({docs:fail?[]:[{id:'note',data:()=>batches[batches.length-1][1].data}],size:fail?0:1})};
  const {StudyRepository}=load('services/repository.ts',{'@react-native-async-storage/async-storage':{setItem:async()=>{}},'expo-crypto':{},'firebase/firestore':firestore,'../domain/models':models,'../domain/sync':sync,'../domain/planner':{},'./firebase':{database:{}},'./photos':photos(),'./errors':{friendlyError:e=>e.message},'../domain/demo':{}});
  const repo=new StudyRepository('alice');repo.ready=true;repo.state={...models.emptyState(),records:{note:record},pending:{note:'r1'}};
  await repo.sync(true);assert.equal(repo.state.pending.note,'r1');assert.equal(repo.state.records.note.photoPending,true);
  fail=false;await repo.sync(true);assert.equal(repo.state.pending.note,undefined);assert.equal(repo.state.records.note.photoId,'note-r1');assert.equal(batches[1].length,2);assert.equal(batches[1][0].path,'users/alice/images/note-r1');assert.equal(batches[1][1].data.base64,undefined);assert.equal(batches[1][1].data.photoUri,undefined);
 });
+
+test('permanent deletion retries failures and deletes attachments without uploading a tombstone', async () => {
+ let fail = true;
+ const deletedPaths = [];
+ const models = load('domain/models.ts');
+ const firestore = {
+  collection: (_db, ...parts) => parts.join('/'), query: base => base,
+  where: () => 0, limit: () => 0, orderBy: () => 0, documentId: () => '__name__',
+  doc: (_db, ...parts) => parts.join('/'),
+  getDocsFromServer: async base => base.endsWith('/images')
+   ? { docs: [{ ref: 'users/alice/images/note-old' }], size: 1 }
+   : { docs: [], size: 0 },
+  writeBatch: () => ({
+   set: () => { throw Error('Deletion must never write a tombstone'); },
+   delete: path => deletedPaths.push(path),
+   commit: async () => { if (fail) throw Error('Connection lost'); },
+  }),
+ };
+ const { StudyRepository } = load('services/repository.ts', {
+  '@react-native-async-storage/async-storage': { setItem: async () => {} },
+  'expo-crypto': {}, 'firebase/firestore': firestore,
+  '../domain/models': models, '../domain/sync': load('domain/sync.ts'),
+  '../domain/planner': {}, './firebase': { database: {} },
+  './photos': { prepareRecordPhoto: () => { throw Error('Must not prepare deleted photo'); } },
+  './errors': { friendlyError: error => error.message }, '../domain/demo': {},
+ });
+ const repo = new StudyRepository('alice');
+ repo.ready = true;
+ repo.state = { ...models.emptyState(), records: { note: { ...record, deleted: true } }, pending: { note: 'r1' } };
+ await repo.sync(true);
+ assert.equal(repo.state.pending.note, 'r1');
+ fail = false;
+ await repo.sync(true);
+ assert.equal(repo.state.records.note, undefined);
+ assert.equal(repo.state.pending.note, undefined);
+ assert.ok(deletedPaths.includes('users/alice/images/note-old'));
+ assert.ok(deletedPaths.includes('users/alice/records/note'));
+});
+

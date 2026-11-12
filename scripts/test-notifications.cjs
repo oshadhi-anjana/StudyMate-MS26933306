@@ -4,7 +4,7 @@ const ts = require('typescript');
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
 
-test('SDK 57 local notification adapter cannot load remote push registration', () => {
+test('SDK 58 local notification adapter cannot load remote push registration', () => {
   const visited = new Set();
   const forbidden = new Set(['DevicePushTokenAutoRegistration.fx.js', 'TokenEmitter.js', 'getExpoPushTokenAsync.js', 'getDevicePushTokenAsync.js', 'warnOfExpoGoPushUsage.js']);
   function visit(filename) {
@@ -44,6 +44,7 @@ test('reminder service loads the local adapter rather than the package root', ()
 });
 
 const missingProvider = new Error('java.lang.NullPointerException: null cannot be cast to non-null type expo.modules.notifications.notifications.channels.NotificationsChannelsProvider');
+const nullChannelReference = new Error("Call to function 'ExpoNotificationChannelManager.setNotificationChannelAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: Attempt to invoke virtual method 'java.lang.Class java.lang.Object.getClass()' on a null object reference");
 function reminderHarness({ os = 'android', expoGo = true, channelError, granted = true } = {}) {
   const calls = { channels: 0, permissions: 0, scheduled: [], cancelled: [] };
   const api = {
@@ -91,6 +92,40 @@ test('normal Android scheduling creates and uses the study channel without an en
   await service.scheduleFocusReminder(Date.now() + 60000, 'focus');
   assert.equal(calls.channels, 1);
   assert.equal(calls.scheduled[0].trigger.channelId, 'study');
+});
+
+test('Expo Go getClass null reference uses the fallback channel and caches setup', async () => {
+  const { service, calls } = reminderHarness({ channelError: nullChannelReference });
+  await service.testReminder();
+  await service.scheduleFocusReminder(Date.now() + 60000, 'focus');
+  await service.reconcileReminders('student', [
+    { id: 'task', kind: 'task', title: 'Essay', dueAt: Date.now() + 3600000, reminderMinutes: 10 },
+  ], true);
+  assert.equal(calls.channels, 1);
+  assert.equal(calls.permissions, 1);
+  assert.equal(calls.scheduled.length, 3);
+  assert.ok(calls.scheduled.every(item => !Object.hasOwn(item.trigger, 'channelId')));
+});
+
+test('installed Android builds also fall back for the native getClass null reference', async () => {
+  const { service, calls } = reminderHarness({ expoGo: false, channelError: nullChannelReference });
+  await service.testReminder();
+  assert.equal(calls.permissions, 1);
+  assert.equal(calls.scheduled.length, 1);
+  assert.ok(!Object.hasOwn(calls.scheduled[0].trigger, 'channelId'));
+});
+
+test('plain-object native rejections use the same fallback', async () => {
+  const { service, calls } = reminderHarness({ expoGo: false, channelError: { message: nullChannelReference.message } });
+  await service.testReminder();
+  assert.equal(calls.scheduled.length, 1);
+  assert.ok(!Object.hasOwn(calls.scheduled[0].trigger, 'channelId'));
+});
+
+test('unrecognized null pointer errors remain visible in Expo Go', async () => {
+  const failure = new Error('java.lang.NullPointerException: unexpected failure');
+  const { service } = reminderHarness({ channelError: failure });
+  await assert.rejects(service.testReminder(), failure);
 });
 
 test('unrelated channel errors are not swallowed and setup can retry', async () => {

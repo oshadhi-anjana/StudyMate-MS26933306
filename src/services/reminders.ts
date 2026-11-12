@@ -13,10 +13,16 @@ async function reminderChannel(api: typeof import('./localNotifications')) {
       await api.setNotificationChannelAsync('study', { name: 'Study reminders', importance: api.AndroidImportance.HIGH });
       return 'study';
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      if (Constants.executionEnvironment === ExecutionEnvironment.StoreClient &&
-          /NotificationsChannelsProvider/.test(message) && /null/i.test(message)) {
-        // This Expo Go runtime is missing the channel registry provider. Omitting
+      // Native promise rejections can be plain objects rather than Error instances.
+      const message = error && typeof error === 'object' && 'message' in error
+        ? String(error.message) : String(error);
+      const missingChannelProvider = /NotificationsChannelsProvider/.test(message) && /null/i.test(message);
+      const nullChannelReference = /java\.lang\.NullPointerException/.test(message) &&
+        /java\.lang\.Object\.getClass\(\)/.test(message) && /null object reference/.test(message);
+      if (nullChannelReference || (Constants.executionEnvironment === ExecutionEnvironment.StoreClient &&
+          missingChannelProvider)) {
+        // The native channel manager can fail with a getClass() null reference
+        // in Android builds as well as Expo Go. Omitting
         // channelId lets Expo's native notification builder create its fallback
         // channel directly through Android's NotificationManager.
         return undefined;
